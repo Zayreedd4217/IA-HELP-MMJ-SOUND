@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Share2 } from "lucide-react";
 import ShareCardGenerator from "@/components/ShareCardGenerator";
 import CopyPostText from "@/components/CopyPostText";
+import { Track } from "@/hooks/useTrackAPI";
 
 /**
  * Design: Cyberpunk Edition - Track Detail Page
@@ -10,13 +11,6 @@ import CopyPostText from "@/components/CopyPostText";
  * - Integrates ShareCardGenerator for visual card creation
  * - Integrates CopyPostText for social media copy generation
  */
-
-interface Track {
-  id: string;
-  title: string;
-  mmjUrl: string;
-  author?: string;
-}
 
 interface TrackPageProps {
   track: Track;
@@ -58,7 +52,9 @@ export default function TrackPage({ track, onBack }: TrackPageProps) {
           <p className="text-[#00FFFF] text-lg mb-4">
             Par {track.author || "Artiste"}
           </p>
-          <p className="text-gray-400 text-sm mb-6">ID: {track.id}</p>
+          <p className="text-gray-400 text-sm mb-6">
+            ID: {track.id} | Likes: {track.likes}
+          </p>
 
           {/* Action Buttons */}
           <div className="flex gap-4 flex-wrap">

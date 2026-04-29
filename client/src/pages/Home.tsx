@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 import TrackPage from "./TrackPage";
+import { useTrackAPI, Track } from "@/hooks/useTrackAPI";
+import { useLocation } from "wouter";
 
 /**
  * Design: Cyberpunk Edition
@@ -11,22 +13,15 @@ import TrackPage from "./TrackPage";
  * - Typography: Bold, high contrast
  */
 
-interface Track {
-  id: string;
-  title: string;
-  mmjUrl: string;
-  author?: string;
-}
-
 export default function Home() {
-  const [tracks, setTracks] = useState<Track[]>([]);
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
   const [formData, setFormData] = useState({
-    id: "caa7bbb1-42b1-11f1-a2dd-06b28167ed5",
     title: "",
     mmjUrl: "",
+    author: "",
   });
-  const [loading, setLoading] = useState(false);
+  const { createTrack, loading, error } = useTrackAPI();
+  const [, navigate] = useLocation();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -35,24 +30,21 @@ export default function Home() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
 
-    try {
-      // Simulate API call to fetch track details
-      const newTrack: Track = {
-        id: formData.id,
-        title: formData.title || "Untitled Track",
-        mmjUrl: formData.mmjUrl,
-        author: "CyberDJ", // Default author
-      };
+    if (!formData.title || !formData.mmjUrl) {
+      alert("Veuillez remplir tous les champs obligatoires");
+      return;
+    }
 
-      setTracks((prev) => [newTrack, ...prev]);
+    const newTrack = await createTrack(
+      formData.title,
+      formData.mmjUrl,
+      formData.author || "Artist"
+    );
+
+    if (newTrack) {
       setSelectedTrack(newTrack);
-      setFormData({ id: "", title: "", mmjUrl: "" });
-    } catch (error) {
-      console.error("Error loading track:", error);
-    } finally {
-      setLoading(false);
+      setFormData({ title: "", mmjUrl: "", author: "" });
     }
   };
 
@@ -77,9 +69,17 @@ export default function Home() {
             </div>
             <div className="text-xs text-[#FF00FF]">CYBERPUNK EDITION</div>
           </div>
-          <Button className="bg-[#00FFFF] hover:bg-[#00FFFF]/80 text-black font-bold">
-            Connexion
-          </Button>
+          <div className="flex gap-3">
+            <Button
+              onClick={() => navigate("/gallery")}
+              className="bg-[#00FFFF] hover:bg-[#00FFFF]/80 text-black font-bold"
+            >
+              Galerie
+            </Button>
+            <Button className="bg-[#FF00FF] hover:bg-[#FF00FF]/80 text-black font-bold">
+              Connexion
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -100,22 +100,13 @@ export default function Home() {
             Ajouter un morceau
           </h2>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-[#FF00FF] font-bold mb-2">
-                ID du morceau MMJ *
-              </label>
-              <Input
-                type="text"
-                name="id"
-                value={formData.id}
-                onChange={handleInputChange}
-                placeholder="Ex: caa7bbb1-42b1-11f1-a2dd-06b28167ed5"
-                className="bg-black border-2 border-[#00FFFF] text-white placeholder-gray-500 focus:border-[#FF00FF] focus:shadow-[0_0_10px_#FF00FF]"
-                required
-              />
+          {error && (
+            <div className="mb-4 p-4 border-2 border-red-500 bg-red-500/10 text-red-400 rounded">
+              {error}
             </div>
+          )}
 
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-[#FF00FF] font-bold mb-2">
                 Titre du morceau *
@@ -128,6 +119,20 @@ export default function Home() {
                 placeholder="Ex: Ma création musicale"
                 className="bg-black border-2 border-[#00FFFF] text-white placeholder-gray-500 focus:border-[#FF00FF] focus:shadow-[0_0_10px_#FF00FF]"
                 required
+              />
+            </div>
+
+            <div>
+              <label className="block text-[#FF00FF] font-bold mb-2">
+                Auteur
+              </label>
+              <Input
+                type="text"
+                name="author"
+                value={formData.author}
+                onChange={handleInputChange}
+                placeholder="Ex: CyberDJ"
+                className="bg-black border-2 border-[#00FFFF] text-white placeholder-gray-500 focus:border-[#FF00FF] focus:shadow-[0_0_10px_#FF00FF]"
               />
             </div>
 
@@ -163,27 +168,18 @@ export default function Home() {
           </form>
         </section>
 
-        {/* Tracks List */}
-        {tracks.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-[#00FFFF] text-lg">
-              Entrez un ID de morceau pour commencer
-            </p>
-          </div>
-        ) : (
-          <section className="grid gap-4">
-            {tracks.map((track) => (
-              <div
-                key={track.id}
-                className="p-4 border-2 border-[#00FFFF] bg-black/50 cursor-pointer hover:shadow-[0_0_20px_#00FFFF] transition-all"
-                onClick={() => setSelectedTrack(track)}
-              >
-                <h3 className="text-[#FF00FF] font-bold">{track.title}</h3>
-                <p className="text-[#00FFFF] text-sm">{track.id}</p>
-              </div>
-            ))}
-          </section>
-        )}
+        {/* Info Section */}
+        <section className="text-center py-12">
+          <p className="text-[#00FFFF] text-lg mb-4">
+            Découvrez les meilleurs morceaux dans notre galerie
+          </p>
+          <Button
+            onClick={() => navigate("/gallery")}
+            className="bg-[#00FFFF] hover:bg-[#00FFFF]/80 text-black font-bold py-3 px-8"
+          >
+            Accéder à la Galerie
+          </Button>
+        </section>
       </main>
 
       {/* Footer */}

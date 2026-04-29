@@ -1,16 +1,37 @@
+import { useState } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch } from "wouter";
+import { Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
-
+import Gallery from "./pages/Gallery";
+import TrackPage from "./pages/TrackPage";
+import { Track } from "@/hooks/useTrackAPI";
 
 function Router() {
+  const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
+  const [location] = useLocation();
+
+  // Check if there's a track ID in query params
+  const trackIdFromQuery = new URLSearchParams(window.location.search).get("track");
+
+  if (selectedTrack) {
+    return (
+      <TrackPage
+        track={selectedTrack}
+        onBack={() => setSelectedTrack(null)}
+      />
+    );
+  }
+
   return (
     <Switch>
       <Route path={"/"} component={Home} />
+      <Route path={"/gallery"}>
+        <Gallery onSelectTrack={setSelectedTrack} />
+      </Route>
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
