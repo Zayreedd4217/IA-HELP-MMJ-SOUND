@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Download, Copy } from "lucide-react";
 // @ts-ignore
-import QRCode from "qrcode.react";
+import { QRCodeSVG } from "qrcode.react";
 import html2canvas from "html2canvas";
 
 /**
@@ -84,7 +84,7 @@ export default function ShareCardGenerator({ track }: ShareCardGeneratorProps) {
         {/* QR Code */}
         <div className="flex justify-center mb-8">
           <div className="bg-white p-4 rounded">
-            <QRCode
+            <QRCodeSVG
               value={trackShareUrl}
               size={150}
               level="H"
