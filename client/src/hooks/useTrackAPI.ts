@@ -6,6 +6,8 @@ export interface Track {
   title: string;
   mmjUrl: string;
   author?: string;
+  userId: string;
+  description?: string;
   createdAt: number;
   likes: number;
 }
@@ -16,20 +18,34 @@ export function useTrackAPI() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const getAllTracks = useCallback(async (): Promise<Track[]> => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await axios.get<Track[]>(`${API_BASE}/tracks`);
-      return response.data;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to fetch tracks";
-      setError(message);
-      return [];
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const getAllTracks = useCallback(
+    async (
+      search?: string,
+      author?: string,
+      sort?: string
+    ): Promise<Track[]> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const params = new URLSearchParams();
+        if (search) params.append("search", search);
+        if (author) params.append("author", author);
+        if (sort) params.append("sort", sort);
+
+        const response = await axios.get<Track[]>(
+          `${API_BASE}/tracks?${params.toString()}`
+        );
+        return response.data;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to fetch tracks";
+        setError(message);
+        return [];
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
 
   const getTrack = useCallback(async (id: string): Promise<Track | null> => {
     setLoading(true);
@@ -47,15 +63,28 @@ export function useTrackAPI() {
   }, []);
 
   const createTrack = useCallback(
-    async (title: string, mmjUrl: string, author?: string): Promise<Track | null> => {
+    async (
+      title: string,
+      mmjUrl: string,
+      author?: string,
+      description?: string,
+      token?: string
+    ): Promise<Track | null> => {
       setLoading(true);
       setError(null);
       try {
-        const response = await axios.post<Track>(`${API_BASE}/tracks`, {
-          title,
-          mmjUrl,
-          author,
-        });
+        const response = await axios.post<Track>(
+          `${API_BASE}/tracks`,
+          {
+            title,
+            mmjUrl,
+            author,
+            description,
+          },
+          {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          }
+        );
         return response.data;
       } catch (err) {
         const message = err instanceof Error ? err.message : "Failed to create track";
@@ -68,27 +97,69 @@ export function useTrackAPI() {
     []
   );
 
-  const likeTrack = useCallback(async (id: string): Promise<Track | null> => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await axios.post<Track>(`${API_BASE}/tracks/${id}/like`);
-      return response.data;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to like track";
-      setError(message);
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const updateTrack = useCallback(
-    async (id: string, updates: Partial<Track>): Promise<Track | null> => {
+  const likeTrack = useCallback(
+    async (id: string, token?: string): Promise<Track | null> => {
       setLoading(true);
       setError(null);
       try {
-        const response = await axios.put<Track>(`${API_BASE}/tracks/${id}`, updates);
+        const response = await axios.post<Track>(
+          `${API_BASE}/tracks/${id}/like`,
+          {},
+          {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          }
+        );
+        return response.data;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to like track";
+        setError(message);
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  const unlikeTrack = useCallback(
+    async (id: string, token?: string): Promise<Track | null> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await axios.delete<Track>(
+          `${API_BASE}/tracks/${id}/like`,
+          {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          }
+        );
+        return response.data;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to unlike track";
+        setError(message);
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  const updateTrack = useCallback(
+    async (
+      id: string,
+      updates: Partial<Track>,
+      token?: string
+    ): Promise<Track | null> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await axios.put<Track>(
+          `${API_BASE}/tracks/${id}`,
+          updates,
+          {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          }
+        );
         return response.data;
       } catch (err) {
         const message = err instanceof Error ? err.message : "Failed to update track";
@@ -101,20 +172,25 @@ export function useTrackAPI() {
     []
   );
 
-  const deleteTrack = useCallback(async (id: string): Promise<boolean> => {
-    setLoading(true);
-    setError(null);
-    try {
-      await axios.delete(`${API_BASE}/tracks/${id}`);
-      return true;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to delete track";
-      setError(message);
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const deleteTrack = useCallback(
+    async (id: string, token?: string): Promise<boolean> => {
+      setLoading(true);
+      setError(null);
+      try {
+        await axios.delete(`${API_BASE}/tracks/${id}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        return true;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to delete track";
+        setError(message);
+        return false;
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
 
   return {
     loading,
@@ -123,6 +199,7 @@ export function useTrackAPI() {
     getTrack,
     createTrack,
     likeTrack,
+    unlikeTrack,
     updateTrack,
     deleteTrack,
   };

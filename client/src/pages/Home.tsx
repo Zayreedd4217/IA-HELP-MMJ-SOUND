@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 import TrackPage from "./TrackPage";
 import { useTrackAPI, Track } from "@/hooks/useTrackAPI";
+import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
 
 /**
@@ -19,11 +20,15 @@ export default function Home() {
     title: "",
     mmjUrl: "",
     author: "",
+    description: "",
   });
   const { createTrack, loading, error } = useTrackAPI();
+  const { isAuthenticated, getToken } = useAuth();
   const [, navigate] = useLocation();
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
@@ -31,20 +36,29 @@ export default function Home() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!isAuthenticated) {
+      alert("Vous devez être connecté pour ajouter un morceau");
+      navigate("/login");
+      return;
+    }
+
     if (!formData.title || !formData.mmjUrl) {
       alert("Veuillez remplir tous les champs obligatoires");
       return;
     }
 
+    const token = getToken();
     const newTrack = await createTrack(
       formData.title,
       formData.mmjUrl,
-      formData.author || "Artist"
+      formData.author || "Artist",
+      formData.description,
+      token || undefined
     );
 
     if (newTrack) {
       setSelectedTrack(newTrack);
-      setFormData({ title: "", mmjUrl: "", author: "" });
+      setFormData({ title: "", mmjUrl: "", author: "", description: "" });
     }
   };
 
@@ -76,8 +90,11 @@ export default function Home() {
             >
               Galerie
             </Button>
-            <Button className="bg-[#FF00FF] hover:bg-[#FF00FF]/80 text-black font-bold">
-              Connexion
+            <Button
+              onClick={() => navigate("/login")}
+              className="bg-[#FF00FF] hover:bg-[#FF00FF]/80 text-black font-bold"
+            >
+              {isAuthenticated ? "Profil" : "Connexion"}
             </Button>
           </div>
         </div>
@@ -91,82 +108,115 @@ export default function Home() {
             <span className="text-[#FF00FF]">Découvrez</span> et{" "}
             <span className="text-[#00FFFF]">partagez</span>
           </h1>
-          <p className="text-[#FF00FF] text-xl">Des morceaux Music Maker Jam</p>
+          <p className="text-[#FF00FF] text-xl">
+            Des morceaux Music Maker Jam avec style
+          </p>
         </section>
 
         {/* Form Section */}
-        <section className="mb-12 p-6 border-2 border-[#FF00FF] shadow-[0_0_20px_#FF00FF] bg-black/50">
-          <h2 className="text-2xl font-bold text-[#00FFFF] mb-6">
-            Ajouter un morceau
-          </h2>
+        {isAuthenticated ? (
+          <section className="mb-12 p-6 border-2 border-[#FF00FF] shadow-[0_0_20px_#FF00FF] bg-black/50">
+            <h2 className="text-2xl font-bold text-[#00FFFF] mb-6">
+              Ajouter un morceau
+            </h2>
 
-          {error && (
-            <div className="mb-4 p-4 border-2 border-red-500 bg-red-500/10 text-red-400 rounded">
-              {error}
-            </div>
-          )}
+            {error && (
+              <div className="mb-4 p-4 border-2 border-red-500 bg-red-500/10 text-red-400 rounded">
+                {error}
+              </div>
+            )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-[#FF00FF] font-bold mb-2">
-                Titre du morceau *
-              </label>
-              <Input
-                type="text"
-                name="title"
-                value={formData.title}
-                onChange={handleInputChange}
-                placeholder="Ex: Ma création musicale"
-                className="bg-black border-2 border-[#00FFFF] text-white placeholder-gray-500 focus:border-[#FF00FF] focus:shadow-[0_0_10px_#FF00FF]"
-                required
-              />
-            </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-[#FF00FF] font-bold mb-2">
+                  Titre du morceau *
+                </label>
+                <Input
+                  type="text"
+                  name="title"
+                  value={formData.title}
+                  onChange={handleInputChange}
+                  placeholder="Ex: Ma création musicale"
+                  className="bg-black border-2 border-[#00FFFF] text-white placeholder-gray-500 focus:border-[#FF00FF] focus:shadow-[0_0_10px_#FF00FF]"
+                  required
+                />
+              </div>
 
-            <div>
-              <label className="block text-[#FF00FF] font-bold mb-2">
-                Auteur
-              </label>
-              <Input
-                type="text"
-                name="author"
-                value={formData.author}
-                onChange={handleInputChange}
-                placeholder="Ex: CyberDJ"
-                className="bg-black border-2 border-[#00FFFF] text-white placeholder-gray-500 focus:border-[#FF00FF] focus:shadow-[0_0_10px_#FF00FF]"
-              />
-            </div>
+              <div>
+                <label className="block text-[#FF00FF] font-bold mb-2">
+                  Auteur
+                </label>
+                <Input
+                  type="text"
+                  name="author"
+                  value={formData.author}
+                  onChange={handleInputChange}
+                  placeholder="Ex: CyberDJ"
+                  className="bg-black border-2 border-[#00FFFF] text-white placeholder-gray-500 focus:border-[#FF00FF] focus:shadow-[0_0_10px_#FF00FF]"
+                />
+              </div>
 
-            <div>
-              <label className="block text-[#FF00FF] font-bold mb-2">
-                Lien Music Maker Jam *
-              </label>
-              <Input
-                type="url"
-                name="mmjUrl"
-                value={formData.mmjUrl}
-                onChange={handleInputChange}
-                placeholder="https://musicmakerja.com/..."
-                className="bg-black border-2 border-[#00FFFF] text-white placeholder-gray-500 focus:border-[#FF00FF] focus:shadow-[0_0_10px_#FF00FF]"
-                required
-              />
-            </div>
+              <div>
+                <label className="block text-[#FF00FF] font-bold mb-2">
+                  Description
+                </label>
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  placeholder="Décrivez votre morceau..."
+                  className="w-full bg-black border-2 border-[#00FFFF] text-white placeholder-gray-500 focus:border-[#FF00FF] focus:shadow-[0_0_10px_#FF00FF] px-3 py-2 rounded"
+                  rows={3}
+                />
+              </div>
 
+              <div>
+                <label className="block text-[#FF00FF] font-bold mb-2">
+                  Lien Music Maker Jam *
+                </label>
+                <Input
+                  type="url"
+                  name="mmjUrl"
+                  value={formData.mmjUrl}
+                  onChange={handleInputChange}
+                  placeholder="https://musicmakerja.com/..."
+                  className="bg-black border-2 border-[#00FFFF] text-white placeholder-gray-500 focus:border-[#FF00FF] focus:shadow-[0_0_10px_#FF00FF]"
+                  required
+                />
+              </div>
+
+              <Button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-[#FF00FF] hover:bg-[#FF00FF]/80 text-black font-bold py-3 shadow-[0_0_15px_#FF00FF]"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Chargement...
+                  </>
+                ) : (
+                  "Charger le morceau"
+                )}
+              </Button>
+            </form>
+          </section>
+        ) : (
+          <section className="mb-12 p-6 border-2 border-[#FF00FF] shadow-[0_0_20px_#FF00FF] bg-black/50 text-center">
+            <h2 className="text-2xl font-bold text-[#FF00FF] mb-4">
+              Connectez-vous pour partager
+            </h2>
+            <p className="text-[#00FFFF] mb-6">
+              Créez un compte pour ajouter vos morceaux et interagir avec la communauté
+            </p>
             <Button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-[#FF00FF] hover:bg-[#FF00FF]/80 text-black font-bold py-3 shadow-[0_0_15px_#FF00FF]"
+              onClick={() => navigate("/login")}
+              className="bg-[#FF00FF] hover:bg-[#FF00FF]/80 text-black font-bold py-3 px-8"
             >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Chargement...
-                </>
-              ) : (
-                "Charger le morceau"
-              )}
+              Se connecter / S'inscrire
             </Button>
-          </form>
-        </section>
+          </section>
+        )}
 
         {/* Info Section */}
         <section className="text-center py-12">
